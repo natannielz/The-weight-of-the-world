@@ -1,0 +1,436 @@
+@import "tailwindcss";
+
+/* ========================================
+   NIER: AUTOMATA - THE END OF YORHA
+   Scrollytelling Experience
+   Design System & Global Styles
+   ======================================== */
+
+/* Custom Properties */
+:root {
+  --void-black: #0a0a0a;
+  --system-gray: #808080;
+  --system-cyan: #00f0ff;
+  --glitch-red: #ff003c;
+  --warm-white: #fff1e6;
+  --gold: #ffd700;
+  --gold-dim: #c5a059;
+  --dark-blue: #0a1628;
+
+  --font-display: 'Playfair Display', Georgia, serif;
+  --font-mono: 'JetBrains Mono', Consolas, monospace;
+  --font-body: 'Inter', system-ui, sans-serif;
+}
+
+/* ========================================
+   BASE STYLES
+   ======================================== */
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+html {
+  scroll-behavior: smooth;
+  scrollbar-width: none;
+}
+
+html::-webkit-scrollbar {
+  display: none;
+}
+
+body {
+  background-color: var(--void-black);
+  color: white;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  overflow-x: hidden;
+  font-family: var(--font-body);
+  cursor: crosshair;
+  min-height: 100vh;
+}
+
+/* Typography */
+h1,
+h2,
+h3 {
+  font-family: var(--font-display);
+  font-weight: 700;
+  letter-spacing: 0.03em;
+}
+
+code,
+pre,
+.mono {
+  font-family: var(--font-mono);
+}
+
+/* Selection */
+::selection {
+  background: var(--system-cyan);
+  color: var(--void-black);
+}
+
+::-moz-selection {
+  background: var(--system-cyan);
+  color: var(--void-black);
+}
+
+/* ========================================
+   GLITCH TEXT EFFECT
+   ======================================== */
+
+.glitch-text {
+  position: relative;
+  animation: glitch-skew 2s infinite linear alternate-reverse;
+}
+
+.glitch-text::before,
+.glitch-text::after {
+  content: attr(data-text);
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  opacity: 0.8;
+}
+
+.glitch-text::before {
+  left: 2px;
+  text-shadow: -2px 0 var(--glitch-red);
+  clip-path: polygon(0 0, 100% 0, 100% 35%, 0 35%);
+  animation: glitch-anim 3s infinite linear alternate-reverse;
+}
+
+.glitch-text::after {
+  left: -2px;
+  text-shadow: 2px 0 var(--system-cyan);
+  clip-path: polygon(0 65%, 100% 65%, 100% 100%, 0 100%);
+  animation: glitch-anim2 2.5s infinite linear alternate-reverse;
+}
+
+@keyframes glitch-skew {
+
+  0%,
+  20%,
+  40%,
+  60%,
+  80%,
+  100% {
+    transform: skew(0deg);
+  }
+
+  10%,
+  30%,
+  50%,
+  70%,
+  90% {
+    transform: skew(0.3deg);
+  }
+}
+
+@keyframes glitch-anim {
+  0% {
+    clip-path: polygon(0 0%, 100% 0%, 100% 5%, 0 5%);
+  }
+
+  20% {
+    clip-path: polygon(0 15%, 100% 15%, 100% 18%, 0 18%);
+  }
+
+  40% {
+    clip-path: polygon(0 35%, 100% 35%, 100% 40%, 0 40%);
+  }
+
+  60% {
+    clip-path: polygon(0 55%, 100% 55%, 100% 58%, 0 58%);
+  }
+
+  80% {
+    clip-path: polygon(0 75%, 100% 75%, 100% 80%, 0 80%);
+  }
+
+  100% {
+    clip-path: polygon(0 90%, 100% 90%, 100% 95%, 0 95%);
+  }
+}
+
+@keyframes glitch-anim2 {
+  0% {
+    clip-path: polygon(0 65%, 100% 65%, 100% 70%, 0 70%);
+  }
+
+  25% {
+    clip-path: polygon(0 45%, 100% 45%, 100% 50%, 0 50%);
+  }
+
+  50% {
+    clip-path: polygon(0 85%, 100% 85%, 100% 90%, 0 90%);
+  }
+
+  75% {
+    clip-path: polygon(0 25%, 100% 25%, 100% 30%, 0 30%);
+  }
+
+  100% {
+    clip-path: polygon(0 95%, 100% 95%, 100% 100%, 0 100%);
+  }
+}
+
+/* ========================================
+   TEXT SHADOWS
+   ======================================== */
+
+.text-shadow-gold {
+  text-shadow:
+    0 0 10px rgba(255, 215, 0, 0.5),
+    0 0 20px rgba(255, 215, 0, 0.3),
+    0 0 40px rgba(255, 215, 0, 0.2);
+}
+
+.text-shadow-cyan {
+  text-shadow:
+    0 0 10px rgba(0, 240, 255, 0.5),
+    0 0 20px rgba(0, 240, 255, 0.3);
+}
+
+.text-shadow-glitch {
+  text-shadow:
+    2px 2px 0 var(--glitch-red),
+    -2px -2px 0 var(--system-cyan);
+}
+
+/* ========================================
+   GLASS CARD STYLING
+   ======================================== */
+
+.glass-card {
+  background: rgba(10, 10, 10, 0.75);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 8px;
+  box-shadow:
+    0 8px 32px rgba(0, 0, 0, 0.5),
+    0 0 0 1px rgba(255, 255, 255, 0.03) inset;
+}
+
+/* ========================================
+   TERMINAL BOX
+   ======================================== */
+
+.terminal-box {
+  background: rgba(0, 0, 0, 0.95);
+  border: 1px solid rgba(0, 240, 255, 0.4);
+  box-shadow:
+    0 0 30px rgba(0, 240, 255, 0.15),
+    0 0 60px rgba(0, 240, 255, 0.05),
+    inset 0 1px 0 rgba(0, 240, 255, 0.1);
+  font-family: var(--font-mono);
+  border-radius: 6px;
+  overflow: hidden;
+}
+
+.terminal-box::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 60px;
+  background: linear-gradient(180deg, rgba(0, 240, 255, 0.05), transparent);
+  pointer-events: none;
+}
+
+/* ========================================
+   CRT EFFECTS
+   ======================================== */
+
+.crt-scanlines {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 999;
+  background-image:
+    linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.15) 50%);
+  background-size: 100% 4px;
+  opacity: 0.1;
+}
+
+/* ========================================
+   ANIMATIONS
+   ======================================== */
+
+@keyframes float {
+
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+
+  50% {
+    transform: translateY(-8px);
+  }
+}
+
+@keyframes pulse-glow {
+
+  0%,
+  100% {
+    box-shadow: 0 0 5px var(--system-cyan), 0 0 10px var(--system-cyan);
+    opacity: 0.8;
+  }
+
+  50% {
+    box-shadow: 0 0 20px var(--system-cyan), 0 0 40px var(--system-cyan);
+    opacity: 1;
+  }
+}
+
+@keyframes grain {
+
+  0%,
+  100% {
+    transform: translate(0, 0)
+  }
+
+  10% {
+    transform: translate(-5%, -10%)
+  }
+
+  30% {
+    transform: translate(7%, -25%)
+  }
+
+  50% {
+    transform: translate(-15%, 10%)
+  }
+
+  70% {
+    transform: translate(0%, 15%)
+  }
+
+  90% {
+    transform: translate(-10%, 10%)
+  }
+}
+
+.animate-float {
+  animation: float 3s ease-in-out infinite;
+}
+
+.animate-pulse-glow {
+  animation: pulse-glow 2s ease-in-out infinite;
+}
+
+.animate-grain {
+  animation: grain 8s steps(10) infinite;
+}
+
+/* ========================================
+   PROGRESS BAR
+   ======================================== */
+
+.progress-bar-container {
+  position: fixed;
+  bottom: 2rem;
+  left: 50%;
+  transform: translateX(-50%);
+  width: min(85%, 42rem);
+  z-index: 100;
+}
+
+.progress-bar-fill {
+  height: 100%;
+  background: linear-gradient(90deg, rgba(255, 215, 0, 0.4), var(--gold), var(--gold));
+  box-shadow: 0 0 20px rgba(255, 215, 0, 0.4);
+  transition: width 0.1s linear;
+}
+
+.progress-bar-ticks {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  justify-content: space-between;
+  padding: 0;
+}
+
+.progress-bar-tick {
+  width: 1px;
+  height: 100%;
+  background: rgba(51, 51, 51, 0.8);
+}
+
+/* ========================================
+   RESPONSIVE UTILITIES
+   ======================================== */
+
+@media (max-width: 640px) {
+  .glass-card {
+    border-radius: 6px;
+  }
+
+  h1 {
+    letter-spacing: 0.02em;
+  }
+}
+
+/* ========================================
+   SCROLL BEHAVIOR
+   ======================================== */
+
+/* Ensure smooth scrolling on the scroll container */
+.scroll-container {
+  scroll-behavior: smooth;
+  -webkit-overflow-scrolling: touch;
+}
+
+/* ========================================
+   ACCESSIBILITY
+   ======================================== */
+
+@media (prefers-reduced-motion: reduce) {
+
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+
+  .glitch-text::before,
+  .glitch-text::after {
+    display: none;
+  }
+}
+
+/* Focus styles for accessibility */
+button:focus-visible {
+  outline: 2px solid var(--system-cyan);
+  outline-offset: 2px;
+}
+
+/* ========================================
+   UTILITY CLASSES
+   ======================================== */
+
+.backdrop-blur-xl {
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
+}
+
+.shadow-glow-cyan {
+  box-shadow: 0 0 20px rgba(0, 240, 255, 0.3), 0 0 40px rgba(0, 240, 255, 0.15);
+}
+
+.shadow-glow-gold {
+  box-shadow: 0 0 20px rgba(255, 215, 0, 0.3), 0 0 40px rgba(255, 215, 0, 0.15);
+}
+
+.shadow-glow-red {
+  box-shadow: 0 0 20px rgba(255, 0, 60, 0.3), 0 0 40px rgba(255, 0, 60, 0.15);
+}
