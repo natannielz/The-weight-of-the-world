@@ -1,6 +1,6 @@
 import { Canvas } from '@react-three/fiber'
 import { ScrollControls, Preload } from '@react-three/drei'
-import { useState, Suspense, useEffect } from 'react'
+import { useState, Suspense, useEffect, useRef } from 'react'
 import { AnimatePresence, motion } from 'framer-motion'
 import Scene from './components/Scene'
 import Overlay from './components/Overlay'
@@ -17,7 +17,7 @@ function LoadingScreen({ onLoadComplete }) {
   useEffect(() => {
     const interval = setInterval(() => {
       setProgress(prev => {
-        const next = prev + Math.random() * 12
+        const next = prev + Math.random() * 15
         if (next >= 100) {
           clearInterval(interval)
           setTimeout(() => onLoadComplete?.(), 300)
@@ -25,7 +25,7 @@ function LoadingScreen({ onLoadComplete }) {
         }
         return next
       })
-    }, 80)
+    }, 60)
 
     return () => clearInterval(interval)
   }, [onLoadComplete])
@@ -89,13 +89,13 @@ function SkipHint({ visible }) {
 
   return (
     <motion.div
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      exit={{ opacity: 0 }}
-      className="fixed top-20 left-1/2 -translate-x-1/2 z-[100] text-center"
+      initial={{ opacity: 0, y: -10 }}
+      animate={{ opacity: 1, y: 0 }}
+      exit={{ opacity: 0, y: -10 }}
+      className="fixed top-20 left-1/2 -translate-x-1/2 z-[100] text-center pointer-events-none"
     >
-      <div className="bg-black/80 border border-[#333] px-4 py-2 rounded font-mono text-[10px] text-[#808080]">
-        Press <span className="text-[#00f0ff]">[S]</span> to skip to the emotional part
+      <div className="bg-black/90 border border-[#333] px-4 py-2 rounded font-mono text-[10px] text-[#808080] shadow-lg">
+        Press <span className="text-[#00f0ff] font-bold">[S]</span> to skip to the emotional part
       </div>
     </motion.div>
   )
@@ -105,53 +105,19 @@ export default function App() {
   const [started, setStarted] = useState(false)
   const [isLoaded, setIsLoaded] = useState(false)
   const [showSkipHint, setShowSkipHint] = useState(false)
-  // Skip key handled via document scroll manipulation
-
-  // Keyboard shortcuts
-  useEffect(() => {
-    if (!started) return
-
-    const handleKeyDown = (e) => {
-      // Press 'S' to skip to Scene 3 (The Glitch in the Choir)
-      if (e.key === 's' || e.key === 'S') {
-        // Find the scroll container and scroll to 40% (Scene 3)
-        const scrollElement = document.querySelector('[data-scroll-container]') ||
-          document.querySelector('.scroll-container') ||
-          document.querySelector('[style*="overflow"]')
-
-        if (scrollElement) {
-          const targetScroll = scrollElement.scrollHeight * 0.40
-          scrollElement.scrollTo({
-            top: targetScroll,
-            behavior: 'smooth'
-          })
-        } else {
-          // Fallback: try window scroll
-          const targetScroll = document.body.scrollHeight * 0.40
-          window.scrollTo({
-            top: targetScroll,
-            behavior: 'smooth'
-          })
-        }
-      }
-    }
-
-    window.addEventListener('keydown', handleKeyDown)
-    return () => window.removeEventListener('keydown', handleKeyDown)
-  }, [started])
 
   // Show skip hint briefly when experience starts
   useEffect(() => {
     if (started) {
       setShowSkipHint(true)
-      const timer = setTimeout(() => setShowSkipHint(false), 5000)
+      const timer = setTimeout(() => setShowSkipHint(false), 4000)
       return () => clearTimeout(timer)
     }
   }, [started])
 
   return (
     <>
-      {/* Custom Cursor */}
+      {/* Custom Cursor - only on desktop */}
       {started && <CustomCursor />}
 
       {/* Loading Screen */}
@@ -190,8 +156,8 @@ export default function App() {
           <Suspense fallback={null}>
             <ScrollControls
               pages={story.length}
-              damping={0.2}
-              distance={1}
+              damping={0.15}
+              distance={1.2}
             >
               <Scene />
               <Overlay />
