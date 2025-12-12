@@ -606,14 +606,35 @@ function Effects() {
 export default function Scene() {
   const scroll = useScroll()
   const bgRef = useRef()
-  const { viewport } = useThree()
+  const { camera, viewport, mouse } = useThree()
 
   const isMobile = useMemo(() => getIsMobile(), [])
 
-  useFrame(() => {
+  // Store original camera position
+  const originalCameraPos = useRef({ x: 0, y: 0, z: 5 })
+
+  useFrame((state) => {
     const offset = scroll.offset
 
-    // Dynamic background color based on scene
+    // ========================================
+    // MOUSE PARALLAX - Camera follows mouse
+    // ========================================
+    if (!isMobile) {
+      const targetX = originalCameraPos.current.x + (state.mouse.x * 0.8)
+      const targetY = originalCameraPos.current.y + (state.mouse.y * 0.5)
+
+      // Smooth lerp for mechanical feel
+      state.camera.position.x = THREE.MathUtils.lerp(state.camera.position.x, targetX, 0.03)
+      state.camera.position.y = THREE.MathUtils.lerp(state.camera.position.y, targetY, 0.03)
+
+      // Subtle rotation to follow mouse
+      state.camera.rotation.y = THREE.MathUtils.lerp(state.camera.rotation.y, -state.mouse.x * 0.02, 0.03)
+      state.camera.rotation.x = THREE.MathUtils.lerp(state.camera.rotation.x, state.mouse.y * 0.02, 0.03)
+    }
+
+    // ========================================
+    // DYNAMIC BACKGROUND COLOR
+    // ========================================
     let targetColor = new THREE.Color('#0a0a0a')
 
     if (offset < 0.15) {

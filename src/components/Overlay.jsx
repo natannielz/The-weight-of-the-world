@@ -1,10 +1,126 @@
 import { useScroll, Html } from '@react-three/drei'
 import { useFrame } from '@react-three/fiber'
-import { useRef, useEffect, useState, useMemo } from 'react'
+import { useRef, useEffect, useState, useCallback } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { story } from '../data/story'
 
-// Terminal output for final scene
+// ========================================
+// SFX UTILITY - Sound Effects
+// ========================================
+const useSFX = () => {
+  const audioContext = useRef(null)
+
+  const initAudio = useCallback(() => {
+    if (!audioContext.current && typeof window !== 'undefined') {
+      try {
+        audioContext.current = new (window.AudioContext || window.webkitAudioContext)()
+      } catch (e) {
+        console.warn('Web Audio API not supported')
+      }
+    }
+  }, [])
+
+  const playBeep = useCallback((frequency = 800, duration = 0.05, volume = 0.1) => {
+    if (!audioContext.current) initAudio()
+    if (!audioContext.current) return
+
+    try {
+      const oscillator = audioContext.current.createOscillator()
+      const gainNode = audioContext.current.createGain()
+
+      oscillator.connect(gainNode)
+      gainNode.connect(audioContext.current.destination)
+
+      oscillator.frequency.value = frequency
+      oscillator.type = 'sine'
+
+      gainNode.gain.value = volume
+      gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.current.currentTime + duration)
+
+      oscillator.start(audioContext.current.currentTime)
+      oscillator.stop(audioContext.current.currentTime + duration)
+    } catch (e) {
+      // Silent fail
+    }
+  }, [initAudio])
+
+  const playGlitch = useCallback(() => {
+    if (!audioContext.current) initAudio()
+    if (!audioContext.current) return
+
+    try {
+      const bufferSize = audioContext.current.sampleRate * 0.1
+      const buffer = audioContext.current.createBuffer(1, bufferSize, audioContext.current.sampleRate)
+      const data = buffer.getChannelData(0)
+
+      for (let i = 0; i < bufferSize; i++) {
+        data[i] = (Math.random() * 2 - 1) * 0.3
+      }
+
+      const source = audioContext.current.createBufferSource()
+      const gainNode = audioContext.current.createGain()
+
+      source.buffer = buffer
+      source.connect(gainNode)
+      gainNode.connect(audioContext.current.destination)
+
+      gainNode.gain.value = 0.05
+      gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.current.currentTime + 0.1)
+
+      source.start()
+    } catch (e) {
+      // Silent fail
+    }
+  }, [initAudio])
+
+  return { playBeep, playGlitch, initAudio }
+}
+
+// ========================================
+// TYPEWRITER TEXT COMPONENT
+// ========================================
+function TypewriterText({ text, speed = 10, className = '', onComplete }) {
+  const [displayedText, setDisplayedText] = useState('')
+  const [isComplete, setIsComplete] = useState(false)
+
+  useEffect(() => {
+    setDisplayedText('')
+    setIsComplete(false)
+
+    let currentIndex = 0
+    const interval = setInterval(() => {
+      if (currentIndex < text.length) {
+        setDisplayedText(text.substring(0, currentIndex + 1))
+        currentIndex++
+      } else {
+        clearInterval(interval)
+        setIsComplete(true)
+        onComplete?.()
+      }
+    }, speed)
+
+    return () => clearInterval(interval)
+  }, [text, speed, onComplete])
+
+  return (
+    <span className={className}>
+      {displayedText}
+      {!isComplete && (
+        <motion.span
+          animate={{ opacity: [1, 0] }}
+          transition={{ duration: 0.5, repeat: Infinity }}
+          className="text-[#00f0ff]"
+        >
+          ▌
+        </motion.span>
+      )}
+    </span>
+  )
+}
+
+// ========================================
+// TERMINAL OUTPUT
+// ========================================
 function TerminalOutput({ lines, visible }) {
   const [visibleLines, setVisibleLines] = useState([])
 
@@ -49,10 +165,10 @@ function TerminalOutput({ lines, visible }) {
             animate={{ opacity: 1, x: 0 }}
             transition={{ duration: 0.3, delay: i * 0.08 }}
             className={`text-sm md:text-base mb-2 ${line.startsWith('>')
-              ? 'text-[#00f0ff]'
-              : line.startsWith('//')
-                ? 'text-[#808080] italic'
-                : 'text-[#ffd700]'
+                ? 'text-[#00f0ff]'
+                : line.startsWith('//')
+                  ? 'text-[#808080] italic'
+                  : 'text-[#ffd700]'
               }`}
           >
             {line || '\u00A0'}
@@ -71,13 +187,119 @@ function TerminalOutput({ lines, visible }) {
   )
 }
 
+// ========================================
+// GLITCH TITLE COMPONENT
+// ========================================
+function GlitchTitle({ children, active = false, className = '', dataText = '' }) {
+  const [isGlitching, setIsGlitching] = useState(false)
+
+  useEffect(() => {
+    if (!active) return
+
+    // Random glitch every 3-8 seconds
+    const interval = setInterval(() => {
+      setIsGlitching(true)
+      setTimeout(() => setIsGlitching(false), 200 + Math.random() * 300)
+    }, 3000 + Math.random() * 5000)
+
+    return () => clearInterval(interval)
+  }, [active])
+
+  return (
+    <h1
+      className={`${className} ${isGlitching || active ? 'glitch-text' : ''}`}
+      data-text={dataText}
+    >
+      {children}
+    </h1>
+  )
+}
+
+// ========================================
+// NIER UI CARD WITH DECORATIVE BORDERS
+// ========================================
+function NierCard({ children, className = '', scene = '' }) {
+  const baseClasses = 'backdrop-blur-xl rounded-lg p-5 md:p-8 shadow-2xl relative'
+
+  const sceneClasses = {
+    reboot: 'bg-black/90 border border-[#ffd700]/40 shadow-[0_0_40px_rgba(255,215,0,0.1)]',
+    rain: 'bg-[#0a1628]/90 border border-[#00f0ff]/30 shadow-[0_0_40px_rgba(0,240,255,0.1)]',
+    glitch: 'bg-black/90 border border-[#ff003c]/30 shadow-[0_0_40px_rgba(255,0,60,0.1)]',
+    screaming: 'bg-black/90 border border-[#ff003c]/30 shadow-[0_0_40px_rgba(255,0,60,0.1)]',
+    default: 'bg-black/80 border border-white/10'
+  }
+
+  const borderColor = scene === 'reboot' ? '#ffd700'
+    : scene === 'rain' ? '#00f0ff'
+      : scene === 'glitch' || scene === 'screaming' ? '#ff003c'
+        : '#dad4bb'
+
+  return (
+    <div className={`${baseClasses} ${sceneClasses[scene] || sceneClasses.default} ${className}`}>
+      {/* Decorative Corner - Top Left */}
+      <div
+        className="absolute -top-1 -left-1 w-3 h-3 border-t-2 border-l-2 pointer-events-none"
+        style={{ borderColor }}
+      />
+      {/* Decorative Corner - Top Right */}
+      <div
+        className="absolute -top-1 -right-1 w-3 h-3 border-t-2 border-r-2 pointer-events-none"
+        style={{ borderColor }}
+      />
+      {/* Decorative Corner - Bottom Left */}
+      <div
+        className="absolute -bottom-1 -left-1 w-3 h-3 border-b-2 border-l-2 pointer-events-none"
+        style={{ borderColor }}
+      />
+      {/* Decorative Corner - Bottom Right */}
+      <div
+        className="absolute -bottom-1 -right-1 w-3 h-3 border-b-2 border-r-2 pointer-events-none"
+        style={{ borderColor }}
+      />
+
+      {/* Horizontal Lines */}
+      <div
+        className="absolute top-1/2 -left-4 w-3 h-px pointer-events-none"
+        style={{ backgroundColor: borderColor, opacity: 0.5 }}
+      />
+      <div
+        className="absolute top-1/2 -right-4 w-3 h-px pointer-events-none"
+        style={{ backgroundColor: borderColor, opacity: 0.5 }}
+      />
+
+      {children}
+    </div>
+  )
+}
+
+// ========================================
+// MAIN OVERLAY COMPONENT
+// ========================================
 export default function Overlay() {
   const scroll = useScroll()
   const progressRef = useRef()
-  const percentRef = useRef()
   const itemRefs = useRef([])
   const [activeIndex, setActiveIndex] = useState(0)
   const [scrollPercent, setScrollPercent] = useState(0)
+  const [useTypewriter, setUseTypewriter] = useState(true)
+  const previousScene = useRef('')
+
+  const { playBeep, playGlitch, initAudio } = useSFX()
+
+  // Initialize audio on first interaction
+  useEffect(() => {
+    const handleInteraction = () => {
+      initAudio()
+      window.removeEventListener('click', handleInteraction)
+      window.removeEventListener('keydown', handleInteraction)
+    }
+    window.addEventListener('click', handleInteraction)
+    window.addEventListener('keydown', handleInteraction)
+    return () => {
+      window.removeEventListener('click', handleInteraction)
+      window.removeEventListener('keydown', handleInteraction)
+    }
+  }, [initAudio])
 
   // Force first item to be visible on mount
   useEffect(() => {
@@ -86,6 +308,15 @@ export default function Overlay() {
       itemRefs.current[0].style.visibility = 'visible'
     }
   }, [])
+
+  // Play glitch sound when entering glitch scene
+  useEffect(() => {
+    const currentScene = story[activeIndex]?.scene
+    if (currentScene === 'glitch' && previousScene.current !== 'glitch') {
+      playGlitch()
+    }
+    previousScene.current = currentScene || ''
+  }, [activeIndex, playGlitch])
 
   useFrame(() => {
     const scrollOffset = scroll.offset || 0
@@ -112,6 +343,10 @@ export default function Overlay() {
 
     if (currentActiveIndex !== activeIndex && currentActiveIndex !== -1) {
       setActiveIndex(currentActiveIndex)
+      // Disable typewriter after first scroll to improve UX
+      if (scrollPercent > 10) {
+        setUseTypewriter(false)
+      }
     }
 
     // Animate each item based on scroll
@@ -124,12 +359,11 @@ export default function Overlay() {
       const itemStart = item.scrollStart
       const itemEnd = item.scrollEnd
       const itemCenter = (itemStart + itemEnd) / 2
-      const itemRange = itemEnd - itemStart
 
       let opacity = 0
 
       // Calculate visibility with smoother transitions
-      const fadeRange = 0.04 // 4% scroll for fade
+      const fadeRange = 0.04
       const fadeInStart = itemStart - fadeRange
       const fadeInEnd = itemStart + fadeRange
       const fadeOutStart = itemEnd - fadeRange
@@ -137,23 +371,20 @@ export default function Overlay() {
 
       if (scrollOffset >= fadeInStart && scrollOffset <= fadeOutEnd) {
         if (scrollOffset < fadeInEnd) {
-          // Fading in
           opacity = (scrollOffset - fadeInStart) / (fadeInEnd - fadeInStart)
         } else if (scrollOffset > fadeOutStart) {
-          // Fading out
           opacity = 1 - (scrollOffset - fadeOutStart) / (fadeOutEnd - fadeOutStart)
         } else {
-          // Fully visible
           opacity = 1
         }
       }
 
-      // Special handling for first item - always visible at start
+      // Special handling for first item
       if (i === 0 && scrollOffset < 0.08) {
         opacity = Math.max(opacity, 1 - (scrollOffset / 0.08))
       }
 
-      // Special handling for last item - stay visible
+      // Special handling for last item
       if (i === story.length - 1 && scrollOffset > 0.90) {
         opacity = Math.max(opacity, (scrollOffset - 0.90) / 0.05)
       }
@@ -163,13 +394,12 @@ export default function Overlay() {
       child.style.opacity = String(opacity)
       child.style.visibility = opacity > 0.01 ? 'visible' : 'hidden'
 
-      // Parallax effect (reduced intensity for smoother feel)
+      // Parallax effect
       const parallax = (scrollOffset - itemCenter) * 150
       child.style.transform = `translateY(${-parallax}px)`
     })
   })
 
-  // Check if we're at the final scene for terminal
   const showTerminal = activeIndex === story.length - 1
 
   return (
@@ -261,31 +491,30 @@ export default function Overlay() {
                 </p>
               )}
 
-              {/* Title - Distressed Serif */}
-              <h1
-                className={`text-2xl sm:text-3xl md:text-5xl lg:text-6xl font-serif text-white mb-6 md:mb-8 tracking-wide leading-tight ${item.scene === 'glitch' || item.scene === 'screaming' ? 'glitch-text' : ''
-                  } ${item.scene === 'reboot' ? 'text-shadow-gold' : ''
+              {/* Title with Glitch Effect */}
+              <GlitchTitle
+                className={`text-2xl sm:text-3xl md:text-5xl lg:text-6xl font-serif text-white mb-6 md:mb-8 tracking-wide leading-tight ${item.scene === 'reboot' ? 'text-shadow-gold' : ''
                   }`}
-                data-text={item.title}
+                active={item.scene === 'glitch' || item.scene === 'screaming'}
+                dataText={item.title}
               >
                 {item.title}
-              </h1>
+              </GlitchTitle>
 
-              {/* Content Card */}
-              <div
-                className={`backdrop-blur-xl rounded-lg p-5 md:p-8 shadow-2xl ${item.scene === 'reboot'
-                  ? 'bg-black/90 border border-[#ffd700]/40 shadow-[0_0_40px_rgba(255,215,0,0.1)]'
-                  : item.scene === 'rain'
-                    ? 'bg-[#0a1628]/90 border border-[#00f0ff]/30 shadow-[0_0_40px_rgba(0,240,255,0.1)]'
-                    : item.scene === 'glitch' || item.scene === 'screaming'
-                      ? 'bg-black/90 border border-[#ff003c]/30 shadow-[0_0_40px_rgba(255,0,60,0.1)]'
-                      : 'bg-black/80 border border-white/10'
-                  }`}
-              >
+              {/* Content Card with Nier UI Borders */}
+              <NierCard scene={item.scene}>
                 <p className="text-[#e0e0e0] text-sm md:text-base font-mono leading-relaxed md:leading-loose whitespace-pre-line text-left">
-                  {item.text}
+                  {activeIndex === i && useTypewriter && i === 0 ? (
+                    <TypewriterText
+                      text={item.text}
+                      speed={8}
+                      className="text-[#e0e0e0]"
+                    />
+                  ) : (
+                    item.text
+                  )}
                 </p>
-              </div>
+              </NierCard>
 
               {/* Terminal Output for Final Scene */}
               {item.terminal && (
@@ -314,41 +543,42 @@ export default function Overlay() {
           <div
             key={i}
             className={`w-1 transition-all duration-300 rounded-full ${i === activeIndex
-              ? 'h-8 bg-[#ffd700] shadow-[0_0_10px_#ffd700]'
-              : i < activeIndex
-                ? 'h-4 bg-white/40'
-                : 'h-4 bg-white/20'
+                ? 'h-8 bg-[#ffd700] shadow-[0_0_10px_#ffd700]'
+                : i < activeIndex
+                  ? 'h-4 bg-white/40'
+                  : 'h-4 bg-white/20'
               }`}
             title={item.title}
           />
         ))}
       </div>
 
-      {/* === DECORATIVE CORNERS === */}
-      <div className="fixed top-0 left-0 w-12 h-12 md:w-16 md:h-16 border-l-2 border-t-2 border-[#333] pointer-events-none" />
-      <div className="fixed top-0 right-0 w-12 h-12 md:w-16 md:h-16 border-r-2 border-t-2 border-[#333] pointer-events-none" />
-      <div className="fixed bottom-0 left-0 w-12 h-12 md:w-16 md:h-16 border-l-2 border-b-2 border-[#333] pointer-events-none" />
-      <div className="fixed bottom-0 right-0 w-12 h-12 md:w-16 md:h-16 border-r-2 border-b-2 border-[#333] pointer-events-none" />
+      {/* === DECORATIVE CORNERS (smaller to avoid collision) === */}
+      <div className="fixed top-0 left-0 w-8 h-8 md:w-12 md:h-12 border-l border-t border-[#333]/50 pointer-events-none" />
+      <div className="fixed top-0 right-0 w-8 h-8 md:w-12 md:h-12 border-r border-t border-[#333]/50 pointer-events-none" />
+      <div className="fixed bottom-0 left-0 w-8 h-8 md:w-12 md:h-12 border-l border-b border-[#333]/50 pointer-events-none" />
+      <div className="fixed bottom-0 right-0 w-8 h-8 md:w-12 md:h-12 border-r border-b border-[#333]/50 pointer-events-none" />
 
-      {/* === SCROLL HINT === */}
+      {/* === SCROLL HINT (disappears quickly) === */}
       <AnimatePresence>
-        {activeIndex === 0 && scrollPercent < 5 && (
+        {activeIndex === 0 && scrollPercent < 1 && (
           <motion.div
             initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
+            animate={{ opacity: 0.7, y: 0 }}
             exit={{ opacity: 0, y: 10 }}
-            className="fixed bottom-20 left-1/2 -translate-x-1/2 z-30 text-center"
+            transition={{ duration: 0.3 }}
+            className="fixed bottom-32 left-1/2 -translate-x-1/2 z-30 text-center pointer-events-none"
           >
             <motion.div
-              animate={{ y: [0, 8, 0] }}
+              animate={{ y: [0, 6, 0] }}
               transition={{ repeat: Infinity, duration: 1.5, ease: 'easeInOut' }}
-              className="flex flex-col items-center gap-2"
+              className="flex flex-col items-center gap-1"
             >
-              <span className="text-[#808080] font-mono text-[10px] md:text-xs tracking-widest">
-                SCROLL TO PROCEED
+              <span className="text-[#808080]/70 font-mono text-[9px] md:text-[10px] tracking-widest">
+                SCROLL
               </span>
               <svg
-                className="w-4 h-4 text-[#808080]"
+                className="w-3 h-3 text-[#808080]/70"
                 fill="none"
                 viewBox="0 0 24 24"
                 stroke="currentColor"
