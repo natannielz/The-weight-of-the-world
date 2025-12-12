@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useRef, useState, useCallback } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 
 export default function AudioPlayer({ started }) {
@@ -6,10 +6,69 @@ export default function AudioPlayer({ started }) {
   const [playing, setPlaying] = useState(false)
   const [volume, setVolume] = useState(0.4)
   const [showVolumeSlider, setShowVolumeSlider] = useState(false)
+  const fadeIntervalRef = useRef(null)
+  const originalVolumeRef = useRef(0.4)
 
+  // Fade volume smoothly
+  const fadeVolume = useCallback((targetVolume, duration = 500) => {
+    if (!audioRef.current) return
+
+    const startVolume = audioRef.current.volume
+    const startTime = Date.now()
+
+    if (fadeIntervalRef.current) {
+      clearInterval(fadeIntervalRef.current)
+    }
+
+    fadeIntervalRef.current = setInterval(() => {
+      const elapsed = Date.now() - startTime
+      const progress = Math.min(elapsed / duration, 1)
+
+      // Ease out
+      const eased = 1 - Math.pow(1 - progress, 3)
+      const newVolume = startVolume + (targetVolume - startVolume) * eased
+
+      if (audioRef.current) {
+        audioRef.current.volume = Math.max(0, Math.min(1, newVolume))
+      }
+
+      if (progress >= 1) {
+        clearInterval(fadeIntervalRef.current)
+        fadeIntervalRef.current = null
+      }
+    }, 16) // ~60fps
+  }, [])
+
+  // Handle Page Visibility API - fade out when tab is not active
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (!audioRef.current || !playing) return
+
+      if (document.hidden) {
+        // Tab is hidden - fade out
+        originalVolumeRef.current = audioRef.current.volume
+        fadeVolume(0, 800)
+      } else {
+        // Tab is visible again - fade in
+        fadeVolume(originalVolumeRef.current, 500)
+      }
+    }
+
+    document.addEventListener('visibilitychange', handleVisibilityChange)
+
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange)
+      if (fadeIntervalRef.current) {
+        clearInterval(fadeIntervalRef.current)
+      }
+    }
+  }, [playing, fadeVolume])
+
+  // Start playing when experience starts
   useEffect(() => {
     if (started && audioRef.current) {
       audioRef.current.volume = volume
+      originalVolumeRef.current = volume
 
       const playAudio = async () => {
         try {
@@ -24,9 +83,11 @@ export default function AudioPlayer({ started }) {
     }
   }, [started])
 
+  // Update volume
   useEffect(() => {
-    if (audioRef.current) {
+    if (audioRef.current && !document.hidden) {
       audioRef.current.volume = volume
+      originalVolumeRef.current = volume
     }
   }, [volume])
 
@@ -75,7 +136,7 @@ export default function AudioPlayer({ started }) {
                     type="range"
                     min="0"
                     max="1"
-                    step="0.1"
+                    step="0.05"
                     value={volume}
                     onChange={(e) => setVolume(parseFloat(e.target.value))}
                     className="w-24 h-1 accent-[#ffd700] cursor-pointer"
@@ -143,8 +204,8 @@ export default function AudioPlayer({ started }) {
               {/* Play/Pause Icon */}
               <div
                 className={`w-6 h-6 flex items-center justify-center border rounded-full transition-colors ${playing
-                  ? 'border-[#ffd700]/50 text-[#ffd700]'
-                  : 'border-[#808080]/50 text-[#808080]'
+                    ? 'border-[#ffd700]/50 text-[#ffd700]'
+                    : 'border-[#808080]/50 text-[#808080]'
                   }`}
               >
                 {playing ? (

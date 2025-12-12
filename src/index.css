@@ -4,22 +4,35 @@
    NIER: AUTOMATA - THE END OF YORHA
    Scrollytelling Experience
    Design System & Global Styles
+   
+   Using Tailwind CSS v4 @theme directive
    ======================================== */
 
-/* Custom Properties */
-:root {
-  --void-black: #0a0a0a;
-  --system-gray: #808080;
-  --system-cyan: #00f0ff;
-  --glitch-red: #ff003c;
-  --warm-white: #fff1e6;
-  --gold: #ffd700;
-  --gold-dim: #c5a059;
-  --dark-blue: #0a1628;
+@theme {
+  /* Colors */
+  --color-void: #0a0a0a;
+  --color-void-light: #111111;
+  --color-system-gray: #808080;
+  --color-system-cyan: #00f0ff;
+  --color-system-cyan-dim: #00a0b0;
+  --color-glitch-red: #ff003c;
+  --color-glitch-red-dark: #aa0028;
+  --color-warm: #fff1e6;
+  --color-warm-dark: #ffe4d6;
+  --color-gold: #ffd700;
+  --color-gold-dim: #c5a059;
+  --color-rain: #0a1628;
+  --color-rain-deep: #051118;
 
+  /* Fonts */
   --font-display: 'Playfair Display', Georgia, serif;
   --font-mono: 'JetBrains Mono', Consolas, monospace;
   --font-body: 'Inter', system-ui, sans-serif;
+
+  /* Shadows */
+  --shadow-glow-cyan: 0 0 20px rgba(0, 240, 255, 0.3), 0 0 40px rgba(0, 240, 255, 0.15);
+  --shadow-glow-gold: 0 0 20px rgba(255, 215, 0, 0.3), 0 0 40px rgba(255, 215, 0, 0.15);
+  --shadow-glow-red: 0 0 20px rgba(255, 0, 60, 0.3), 0 0 40px rgba(255, 0, 60, 0.15);
 }
 
 /* ========================================
@@ -42,13 +55,12 @@ html::-webkit-scrollbar {
 }
 
 body {
-  background-color: var(--void-black);
+  background-color: var(--color-void);
   color: white;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   overflow-x: hidden;
   font-family: var(--font-body);
-  cursor: crosshair;
   min-height: 100vh;
 }
 
@@ -69,13 +81,13 @@ pre,
 
 /* Selection */
 ::selection {
-  background: var(--system-cyan);
-  color: var(--void-black);
+  background: var(--color-system-cyan);
+  color: var(--color-void);
 }
 
 ::-moz-selection {
-  background: var(--system-cyan);
-  color: var(--void-black);
+  background: var(--color-system-cyan);
+  color: var(--color-void);
 }
 
 /* ========================================
@@ -100,14 +112,14 @@ pre,
 
 .glitch-text::before {
   left: 2px;
-  text-shadow: -2px 0 var(--glitch-red);
+  text-shadow: -2px 0 var(--color-glitch-red);
   clip-path: polygon(0 0, 100% 0, 100% 35%, 0 35%);
   animation: glitch-anim 3s infinite linear alternate-reverse;
 }
 
 .glitch-text::after {
   left: -2px;
-  text-shadow: 2px 0 var(--system-cyan);
+  text-shadow: 2px 0 var(--color-system-cyan);
   clip-path: polygon(0 65%, 100% 65%, 100% 100%, 0 100%);
   animation: glitch-anim2 2.5s infinite linear alternate-reverse;
 }
@@ -199,8 +211,8 @@ pre,
 
 .text-shadow-glitch {
   text-shadow:
-    2px 2px 0 var(--glitch-red),
-    -2px -2px 0 var(--system-cyan);
+    2px 2px 0 var(--color-glitch-red),
+    -2px -2px 0 var(--color-system-cyan);
 }
 
 /* ========================================
@@ -280,12 +292,12 @@ pre,
 
   0%,
   100% {
-    box-shadow: 0 0 5px var(--system-cyan), 0 0 10px var(--system-cyan);
+    box-shadow: 0 0 5px var(--color-system-cyan), 0 0 10px var(--color-system-cyan);
     opacity: 0.8;
   }
 
   50% {
-    box-shadow: 0 0 20px var(--system-cyan), 0 0 40px var(--system-cyan);
+    box-shadow: 0 0 20px var(--color-system-cyan), 0 0 40px var(--color-system-cyan);
     opacity: 1;
   }
 }
@@ -331,37 +343,23 @@ pre,
 }
 
 /* ========================================
-   PROGRESS BAR
+   TYPOGRAPHY FIXES - Better Contrast
    ======================================== */
 
-.progress-bar-container {
-  position: fixed;
-  bottom: 2rem;
-  left: 50%;
-  transform: translateX(-50%);
-  width: min(85%, 42rem);
-  z-index: 100;
+/* Body text - improved readability */
+.text-readable {
+  color: rgba(255, 255, 255, 0.9);
 }
 
-.progress-bar-fill {
-  height: 100%;
-  background: linear-gradient(90deg, rgba(255, 215, 0, 0.4), var(--gold), var(--gold));
-  box-shadow: 0 0 20px rgba(255, 215, 0, 0.4);
-  transition: width 0.1s linear;
+/* Ensure text in glass cards is readable */
+.glass-card p,
+.glass-card span {
+  color: #e0e0e0;
 }
 
-.progress-bar-ticks {
-  position: absolute;
-  inset: 0;
-  display: flex;
-  justify-content: space-between;
-  padding: 0;
-}
-
-.progress-bar-tick {
-  width: 1px;
-  height: 100%;
-  background: rgba(51, 51, 51, 0.8);
+/* Muted text should still be visible */
+.text-muted {
+  color: #a0a0a0;
 }
 
 /* ========================================
@@ -376,16 +374,6 @@ pre,
   h1 {
     letter-spacing: 0.02em;
   }
-}
-
-/* ========================================
-   SCROLL BEHAVIOR
-   ======================================== */
-
-/* Ensure smooth scrolling on the scroll container */
-.scroll-container {
-  scroll-behavior: smooth;
-  -webkit-overflow-scrolling: touch;
 }
 
 /* ========================================
@@ -410,7 +398,12 @@ pre,
 
 /* Focus styles for accessibility */
 button:focus-visible {
-  outline: 2px solid var(--system-cyan);
+  outline: 2px solid var(--color-system-cyan);
+  outline-offset: 2px;
+}
+
+a:focus-visible {
+  outline: 2px solid var(--color-gold);
   outline-offset: 2px;
 }
 
@@ -424,13 +417,23 @@ button:focus-visible {
 }
 
 .shadow-glow-cyan {
-  box-shadow: 0 0 20px rgba(0, 240, 255, 0.3), 0 0 40px rgba(0, 240, 255, 0.15);
+  box-shadow: var(--shadow-glow-cyan);
 }
 
 .shadow-glow-gold {
-  box-shadow: 0 0 20px rgba(255, 215, 0, 0.3), 0 0 40px rgba(255, 215, 0, 0.15);
+  box-shadow: var(--shadow-glow-gold);
 }
 
 .shadow-glow-red {
-  box-shadow: 0 0 20px rgba(255, 0, 60, 0.3), 0 0 40px rgba(255, 0, 60, 0.15);
+  box-shadow: var(--shadow-glow-red);
+}
+
+/* Hide scrollbar utility */
+.hide-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+.hide-scrollbar::-webkit-scrollbar {
+  display: none;
 }

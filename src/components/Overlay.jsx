@@ -49,10 +49,10 @@ function TerminalOutput({ lines, visible }) {
             animate={{ opacity: 1, x: 0 }}
             transition={{ duration: 0.3, delay: i * 0.08 }}
             className={`text-sm md:text-base mb-2 ${line.startsWith('>')
-                ? 'text-[#00f0ff]'
-                : line.startsWith('//')
-                  ? 'text-[#808080] italic'
-                  : 'text-[#ffd700]'
+              ? 'text-[#00f0ff]'
+              : line.startsWith('//')
+                ? 'text-[#808080] italic'
+                : 'text-[#ffd700]'
               }`}
           >
             {line || '\u00A0'}
@@ -274,15 +274,15 @@ export default function Overlay() {
               {/* Content Card */}
               <div
                 className={`backdrop-blur-xl rounded-lg p-5 md:p-8 shadow-2xl ${item.scene === 'reboot'
-                    ? 'bg-black/90 border border-[#ffd700]/40 shadow-[0_0_40px_rgba(255,215,0,0.1)]'
-                    : item.scene === 'rain'
-                      ? 'bg-[#0a1628]/90 border border-[#00f0ff]/30 shadow-[0_0_40px_rgba(0,240,255,0.1)]'
-                      : item.scene === 'glitch' || item.scene === 'screaming'
-                        ? 'bg-black/90 border border-[#ff003c]/30 shadow-[0_0_40px_rgba(255,0,60,0.1)]'
-                        : 'bg-black/80 border border-white/10'
+                  ? 'bg-black/90 border border-[#ffd700]/40 shadow-[0_0_40px_rgba(255,215,0,0.1)]'
+                  : item.scene === 'rain'
+                    ? 'bg-[#0a1628]/90 border border-[#00f0ff]/30 shadow-[0_0_40px_rgba(0,240,255,0.1)]'
+                    : item.scene === 'glitch' || item.scene === 'screaming'
+                      ? 'bg-black/90 border border-[#ff003c]/30 shadow-[0_0_40px_rgba(255,0,60,0.1)]'
+                      : 'bg-black/80 border border-white/10'
                   }`}
               >
-                <p className="text-gray-300 text-sm md:text-base font-mono leading-relaxed md:leading-loose whitespace-pre-line text-left">
+                <p className="text-[#e0e0e0] text-sm md:text-base font-mono leading-relaxed md:leading-loose whitespace-pre-line text-left">
                   {item.text}
                 </p>
               </div>
@@ -314,10 +314,10 @@ export default function Overlay() {
           <div
             key={i}
             className={`w-1 transition-all duration-300 rounded-full ${i === activeIndex
-                ? 'h-8 bg-[#ffd700] shadow-[0_0_10px_#ffd700]'
-                : i < activeIndex
-                  ? 'h-4 bg-white/40'
-                  : 'h-4 bg-white/20'
+              ? 'h-8 bg-[#ffd700] shadow-[0_0_10px_#ffd700]'
+              : i < activeIndex
+                ? 'h-4 bg-white/40'
+                : 'h-4 bg-white/20'
               }`}
             title={item.title}
           />

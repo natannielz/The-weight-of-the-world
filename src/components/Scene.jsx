@@ -1,4 +1,4 @@
-import { useRef, useMemo, useState } from 'react'
+import { useRef, useMemo, useState, useEffect } from 'react'
 import { useFrame, useThree } from '@react-three/fiber'
 import { useScroll, MeshDistortMaterial, Sparkles, Float, Stars, Line } from '@react-three/drei'
 import { EffectComposer, Bloom, Noise, Glitch, Vignette, ChromaticAberration } from '@react-three/postprocessing'
@@ -6,22 +6,34 @@ import { BlendFunction, GlitchMode } from 'postprocessing'
 import * as THREE from 'three'
 
 // ========================================
+// PERFORMANCE UTILITIES
+// ========================================
+
+// Detect if mobile for performance optimization
+const getIsMobile = () => {
+  if (typeof window === 'undefined') return false
+  return window.innerWidth < 768 || window.matchMedia('(pointer: coarse)').matches
+}
+
+// ========================================
 // SCENE 1: THE GRID - Mechanical Gray World
 // ========================================
 function TheGrid() {
   const groupRef = useRef()
   const scroll = useScroll()
-  const gridLines = useRef([])
+  const { viewport } = useThree()
+
+  const isMobile = useMemo(() => getIsMobile(), [])
+  const gridDivisions = isMobile ? 20 : 40
 
   // Create grid geometry
   const gridData = useMemo(() => {
     const lines = []
     const size = 50
-    const divisions = 40
-    const step = size / divisions
+    const step = size / gridDivisions
 
     // Horizontal lines
-    for (let i = -divisions / 2; i <= divisions / 2; i++) {
+    for (let i = -gridDivisions / 2; i <= gridDivisions / 2; i++) {
       lines.push([
         [-size / 2, 0, i * step],
         [size / 2, 0, i * step]
@@ -29,7 +41,7 @@ function TheGrid() {
     }
 
     // Vertical lines  
-    for (let i = -divisions / 2; i <= divisions / 2; i++) {
+    for (let i = -gridDivisions / 2; i <= gridDivisions / 2; i++) {
       lines.push([
         [i * step, 0, -size / 2],
         [i * step, 0, size / 2]
@@ -37,7 +49,7 @@ function TheGrid() {
     }
 
     return lines
-  }, [])
+  }, [gridDivisions])
 
   useFrame((state) => {
     if (!groupRef.current) return
@@ -54,10 +66,11 @@ function TheGrid() {
     // Slow mechanical movement
     groupRef.current.position.z = (t * 0.5) % 5
 
-    // Fade opacity
-    groupRef.current.children.forEach(child => {
+    // Fade opacity (batch update)
+    const opacity = active * 0.4
+    groupRef.current.traverse(child => {
       if (child.material) {
-        child.material.opacity = active * 0.4
+        child.material.opacity = opacity
       }
     })
   })
@@ -75,9 +88,9 @@ function TheGrid() {
         />
       ))}
 
-      {/* Secondary ceiling grid */}
+      {/* Secondary ceiling grid - reduced on mobile */}
       <group position={[0, 15, 0]} rotation={[Math.PI, 0, 0]}>
-        {gridData.slice(0, 20).map((points, i) => (
+        {gridData.slice(0, isMobile ? 10 : 20).map((points, i) => (
           <Line
             key={`ceiling-${i}`}
             points={points}
@@ -91,7 +104,7 @@ function TheGrid() {
 
       {/* Ambient particles */}
       <Sparkles
-        count={50}
+        count={isMobile ? 25 : 50}
         scale={30}
         size={1}
         speed={0.2}
@@ -110,7 +123,8 @@ function TheShards() {
   const scroll = useScroll()
   const meshRefs = useRef([])
 
-  const shardCount = 40
+  const isMobile = useMemo(() => getIsMobile(), [])
+  const shardCount = isMobile ? 20 : 40
 
   const shardData = useMemo(() => {
     return Array.from({ length: shardCount }, (_, i) => ({
@@ -128,7 +142,7 @@ function TheShards() {
       speed: 0.5 + Math.random() * 2,
       type: i % 3 // 0: English/Logic, 1: Japanese/Nuance, 2: Chaos
     }))
-  }, [])
+  }, [shardCount])
 
   useFrame((state) => {
     if (!groupRef.current) return
@@ -147,6 +161,10 @@ function TheShards() {
     // Phase within section determines distortion
     const phase = THREE.MathUtils.smoothstep(scrollOffset, 0.15, 0.40)
 
+    // BPM sync simulation (~120 BPM = 2 beats per second)
+    const bpmSync = Math.sin(t * Math.PI * 2) * 0.5 + 0.5
+    const glitchSpike = scrollOffset > 0.28 && scrollOffset < 0.40 ? bpmSync * 0.3 : 0
+
     meshRefs.current.forEach((mesh, i) => {
       if (!mesh) return
 
@@ -157,11 +175,10 @@ function TheShards() {
       mesh.rotation.y += 0.003 * data.speed
       mesh.position.y = data.position[1] + Math.sin(t * data.speed + i) * 0.5
 
-      // Distortion based on type and scroll phase
+      // Distortion based on type and scroll phase with glitch spike
       if (mesh.material) {
-        // English (Logic) = stays rigid, Chaos = melts most
         const baseDistort = data.type === 0 ? 0.1 : data.type === 1 ? 0.3 : 0.6
-        mesh.material.distort = baseDistort * phase
+        mesh.material.distort = (baseDistort * phase) + glitchSpike
 
         // Color shift
         const targetColor = data.type === 0
@@ -197,9 +214,9 @@ function TheShards() {
         </Float>
       ))}
 
-      {/* Connecting lines between shards */}
+      {/* Connecting sparkles */}
       <Sparkles
-        count={100}
+        count={isMobile ? 50 : 100}
         scale={25}
         size={2}
         speed={0.3}
@@ -212,20 +229,24 @@ function TheShards() {
 
 // ========================================
 // SCENE 3: THE CHOIR - Glitch Climax
+// OPTIMIZED: Reduced particles on mobile
 // ========================================
 function TheChoir() {
   const groupRef = useRef()
   const particlesRef = useRef()
   const scroll = useScroll()
+  const { viewport } = useThree()
+
+  // Performance optimization: reduce particles on mobile
+  const isMobile = useMemo(() => getIsMobile(), [])
+  const particleCount = isMobile ? 600 : 2000
 
   // Create tornado of particles
   const particleData = useMemo(() => {
-    const count = 2000
-    const positions = new Float32Array(count * 3)
-    const colors = new Float32Array(count * 3)
-    const sizes = new Float32Array(count)
+    const positions = new Float32Array(particleCount * 3)
+    const colors = new Float32Array(particleCount * 3)
 
-    for (let i = 0; i < count; i++) {
+    for (let i = 0; i < particleCount; i++) {
       const radius = 2 + Math.random() * 8
       const theta = Math.random() * Math.PI * 2
       const height = (Math.random() - 0.5) * 15
@@ -245,12 +266,13 @@ function TheChoir() {
         colors[i * 3 + 1] = 0
         colors[i * 3 + 2] = 0.24
       }
-
-      sizes[i] = 0.02 + Math.random() * 0.08
     }
 
-    return { positions, colors, sizes, count }
-  }, [])
+    return { positions, colors, count: particleCount }
+  }, [particleCount])
+
+  // Frame counter for performance - only update every N frames on mobile
+  const frameCounter = useRef(0)
 
   useFrame((state) => {
     if (!groupRef.current || !particlesRef.current) return
@@ -277,12 +299,21 @@ function TheChoir() {
     groupRef.current.position.x = vibrationX
     groupRef.current.position.y = vibrationY
 
+    // Scale based on active state
+    groupRef.current.scale.setScalar(active)
+
+    // Performance: Skip particle updates on some frames for mobile
+    frameCounter.current++
+    if (isMobile && frameCounter.current % 2 !== 0) return
+
     // Animate particles upward
     const positionAttr = particlesRef.current.geometry.attributes.position
     const positions = positionAttr.array
 
-    for (let i = 0; i < particleData.count; i++) {
-      // Upward spiral movement
+    // Use step for performance (update every Nth particle on mobile)
+    const step = isMobile ? 2 : 1
+
+    for (let i = 0; i < particleData.count; i += step) {
       const idx = i * 3
       const x = positions[idx]
       const z = positions[idx + 2]
@@ -291,7 +322,7 @@ function TheChoir() {
 
       positions[idx] = Math.cos(angle + 0.01) * radius
       positions[idx + 2] = Math.sin(angle + 0.01) * radius
-      positions[idx + 1] += 0.02
+      positions[idx + 1] += 0.02 * step
 
       // Reset if too high
       if (positions[idx + 1] > 8) {
@@ -299,9 +330,6 @@ function TheChoir() {
       }
     }
     positionAttr.needsUpdate = true
-
-    // Scale based on active state
-    groupRef.current.scale.setScalar(active)
   })
 
   return (
@@ -322,7 +350,7 @@ function TheChoir() {
           />
         </bufferGeometry>
         <pointsMaterial
-          size={0.08}
+          size={isMobile ? 0.1 : 0.08}
           vertexColors
           transparent
           opacity={0.8}
@@ -332,13 +360,13 @@ function TheChoir() {
 
       {/* Core glow */}
       <mesh>
-        <sphereGeometry args={[1, 32, 32]} />
+        <sphereGeometry args={[1, isMobile ? 16 : 32, isMobile ? 16 : 32]} />
         <meshBasicMaterial color="#ff003c" transparent opacity={0.3} />
       </mesh>
 
-      {/* Outer halo */}
+      {/* Outer halo - reduced on mobile */}
       <Sparkles
-        count={300}
+        count={isMobile ? 100 : 300}
         scale={15}
         size={6}
         speed={2}
@@ -347,7 +375,7 @@ function TheChoir() {
       />
 
       <Sparkles
-        count={150}
+        count={isMobile ? 50 : 150}
         scale={12}
         size={8}
         speed={1}
@@ -366,21 +394,23 @@ function TheRain() {
   const rainRef = useRef()
   const scroll = useScroll()
 
+  const isMobile = useMemo(() => getIsMobile(), [])
+  const rainCount = isMobile ? 400 : 1000
+
   // Rain drops
   const rainData = useMemo(() => {
-    const count = 1000
-    const positions = new Float32Array(count * 3)
+    const positions = new Float32Array(rainCount * 3)
 
-    for (let i = 0; i < count; i++) {
+    for (let i = 0; i < rainCount; i++) {
       positions[i * 3] = (Math.random() - 0.5) * 30
       positions[i * 3 + 1] = Math.random() * 30 - 15
       positions[i * 3 + 2] = (Math.random() - 0.5) * 20
     }
 
-    return { positions, count }
-  }, [])
+    return { positions, count: rainCount }
+  }, [rainCount])
 
-  useFrame((state) => {
+  useFrame(() => {
     if (!groupRef.current || !rainRef.current) return
 
     const scrollOffset = scroll.offset
@@ -423,7 +453,7 @@ function TheRain() {
         </bufferGeometry>
         <pointsMaterial
           color="#00f0ff"
-          size={0.03}
+          size={isMobile ? 0.04 : 0.03}
           transparent
           opacity={0.6}
           sizeAttenuation
@@ -437,12 +467,12 @@ function TheRain() {
         penumbra={0.8}
         intensity={3}
         color="#00f0ff"
-        castShadow
+        castShadow={!isMobile}
       />
 
       {/* Ambient rain sparkles */}
       <Sparkles
-        count={100}
+        count={isMobile ? 50 : 100}
         scale={20}
         size={2}
         speed={3}
@@ -465,8 +495,9 @@ function TheRain() {
 function SystemReboot() {
   const groupRef = useRef()
   const scroll = useScroll()
+  const isMobile = useMemo(() => getIsMobile(), [])
 
-  useFrame((state) => {
+  useFrame(() => {
     if (!groupRef.current) return
 
     const scrollOffset = scroll.offset
@@ -482,7 +513,7 @@ function SystemReboot() {
     <group ref={groupRef}>
       {/* Gentle rising particles */}
       <Sparkles
-        count={200}
+        count={isMobile ? 100 : 200}
         scale={30}
         size={3}
         speed={0.5}
@@ -491,7 +522,7 @@ function SystemReboot() {
       />
 
       <Sparkles
-        count={100}
+        count={isMobile ? 50 : 100}
         scale={20}
         size={5}
         speed={0.3}
@@ -501,7 +532,7 @@ function SystemReboot() {
 
       {/* Central glow */}
       <mesh>
-        <sphereGeometry args={[3, 64, 64]} />
+        <sphereGeometry args={[3, isMobile ? 32 : 64, isMobile ? 32 : 64]} />
         <meshBasicMaterial color="#fff1e6" transparent opacity={0.2} />
       </mesh>
     </group>
@@ -518,15 +549,21 @@ function Effects() {
   const [bloomIntensity, setBloomIntensity] = useState(1.5)
   const [noiseOpacity, setNoiseOpacity] = useState(0.15)
 
-  useFrame(() => {
+  const isMobile = useMemo(() => getIsMobile(), [])
+
+  useFrame((state) => {
     const offset = scroll.offset
+    const t = state.clock.getElapsedTime()
 
     // Glitch section (0.40 - 0.70)
     const isGlitchSection = offset > 0.40 && offset < 0.70
     const glitchIntensity = THREE.MathUtils.smoothstep(offset, 0.45, 0.55)
 
-    // Random glitch triggers
-    setGlitchActive(isGlitchSection && Math.random() > (0.95 - glitchIntensity * 0.2))
+    // BPM sync for glitch (more intense on beat)
+    const bpmPulse = Math.sin(t * Math.PI * 2) > 0.7
+
+    // Random glitch triggers with BPM sync
+    setGlitchActive(isGlitchSection && (Math.random() > (0.95 - glitchIntensity * 0.2) || (bpmPulse && glitchIntensity > 0.3)))
 
     // Chromatic aberration
     const chromaVal = 0.001 + glitchIntensity * 0.008
@@ -542,7 +579,7 @@ function Effects() {
   })
 
   return (
-    <EffectComposer disableNormalPass>
+    <EffectComposer disableNormalPass multisampling={isMobile ? 0 : 8}>
       <Bloom
         luminanceThreshold={0.4}
         mipmapBlur
@@ -551,7 +588,7 @@ function Effects() {
       />
       <Noise opacity={noiseOpacity} blendFunction={BlendFunction.OVERLAY} />
       <Vignette eskil={false} offset={0.1} darkness={1.1} />
-      <ChromaticAberration offset={chromaOffset} />
+      {!isMobile && <ChromaticAberration offset={chromaOffset} />}
       <Glitch
         delay={[1.5, 3.5]}
         duration={[0.6, 1.0]}
@@ -569,7 +606,9 @@ function Effects() {
 export default function Scene() {
   const scroll = useScroll()
   const bgRef = useRef()
-  const { scene } = useThree()
+  const { viewport } = useThree()
+
+  const isMobile = useMemo(() => getIsMobile(), [])
 
   useFrame(() => {
     const offset = scroll.offset
@@ -609,11 +648,11 @@ export default function Scene() {
       <ambientLight intensity={0.3} />
       <directionalLight position={[10, 10, 5]} intensity={0.5} color="#fff1e6" />
 
-      {/* Background Stars - always visible but fade */}
+      {/* Background Stars - reduced on mobile */}
       <Stars
         radius={100}
         depth={50}
-        count={3000}
+        count={isMobile ? 1500 : 3000}
         factor={3}
         saturation={0}
         fade
