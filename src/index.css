@@ -4,12 +4,10 @@
    NIER: AUTOMATA - THE END OF YORHA
    Scrollytelling Experience
    Design System & Global Styles
-   
-   Using Tailwind CSS v4 @theme directive
    ======================================== */
 
-@theme {
-  /* Colors */
+/* Custom Properties - Works even without @theme */
+:root {
   --color-void: #0a0a0a;
   --color-void-light: #111111;
   --color-system-gray: #808080;
@@ -24,12 +22,10 @@
   --color-rain: #0a1628;
   --color-rain-deep: #051118;
 
-  /* Fonts */
   --font-display: 'Playfair Display', Georgia, serif;
   --font-mono: 'JetBrains Mono', Consolas, monospace;
   --font-body: 'Inter', system-ui, sans-serif;
 
-  /* Shadows */
   --shadow-glow-cyan: 0 0 20px rgba(0, 240, 255, 0.3), 0 0 40px rgba(0, 240, 255, 0.15);
   --shadow-glow-gold: 0 0 20px rgba(255, 215, 0, 0.3), 0 0 40px rgba(255, 215, 0, 0.15);
   --shadow-glow-red: 0 0 20px rgba(255, 0, 60, 0.3), 0 0 40px rgba(255, 0, 60, 0.15);
@@ -48,6 +44,7 @@
 html {
   scroll-behavior: smooth;
   scrollbar-width: none;
+  font-size: 16px;
 }
 
 html::-webkit-scrollbar {
@@ -55,38 +52,52 @@ html::-webkit-scrollbar {
 }
 
 body {
+  background-color: #0a0a0a;
   background-color: var(--color-void);
   color: white;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   overflow-x: hidden;
+  font-family: 'Inter', system-ui, -apple-system, sans-serif;
   font-family: var(--font-body);
   min-height: 100vh;
+  line-height: 1.6;
 }
 
 /* Typography */
 h1,
 h2,
-h3 {
+h3,
+h4,
+h5,
+h6 {
+  font-family: 'Playfair Display', Georgia, serif;
   font-family: var(--font-display);
   font-weight: 700;
   letter-spacing: 0.03em;
+  line-height: 1.2;
 }
 
 code,
 pre,
-.mono {
+.mono,
+.font-mono {
+  font-family: 'JetBrains Mono', Consolas, 'Courier New', monospace;
   font-family: var(--font-mono);
 }
 
 /* Selection */
 ::selection {
+  background: #00f0ff;
   background: var(--color-system-cyan);
+  color: #0a0a0a;
   color: var(--color-void);
 }
 
 ::-moz-selection {
+  background: #00f0ff;
   background: var(--color-system-cyan);
+  color: #0a0a0a;
   color: var(--color-void);
 }
 
@@ -108,18 +119,19 @@ pre,
   width: 100%;
   height: 100%;
   opacity: 0.8;
+  pointer-events: none;
 }
 
 .glitch-text::before {
   left: 2px;
-  text-shadow: -2px 0 var(--color-glitch-red);
+  text-shadow: -2px 0 #ff003c;
   clip-path: polygon(0 0, 100% 0, 100% 35%, 0 35%);
   animation: glitch-anim 3s infinite linear alternate-reverse;
 }
 
 .glitch-text::after {
   left: -2px;
-  text-shadow: 2px 0 var(--color-system-cyan);
+  text-shadow: 2px 0 #00f0ff;
   clip-path: polygon(0 65%, 100% 65%, 100% 100%, 0 100%);
   animation: glitch-anim2 2.5s infinite linear alternate-reverse;
 }
@@ -140,7 +152,7 @@ pre,
   50%,
   70%,
   90% {
-    transform: skew(0.3deg);
+    transform: skew(0.4deg);
   }
 }
 
@@ -211,8 +223,8 @@ pre,
 
 .text-shadow-glitch {
   text-shadow:
-    2px 2px 0 var(--color-glitch-red),
-    -2px -2px 0 var(--color-system-cyan);
+    2px 2px 0 #ff003c,
+    -2px -2px 0 #00f0ff;
 }
 
 /* ========================================
@@ -244,6 +256,7 @@ pre,
   font-family: var(--font-mono);
   border-radius: 6px;
   overflow: hidden;
+  position: relative;
 }
 
 .terminal-box::before {
@@ -292,41 +305,26 @@ pre,
 
   0%,
   100% {
-    box-shadow: 0 0 5px var(--color-system-cyan), 0 0 10px var(--color-system-cyan);
+    box-shadow: 0 0 5px #00f0ff, 0 0 10px #00f0ff;
     opacity: 0.8;
   }
 
   50% {
-    box-shadow: 0 0 20px var(--color-system-cyan), 0 0 40px var(--color-system-cyan);
+    box-shadow: 0 0 20px #00f0ff, 0 0 40px #00f0ff;
     opacity: 1;
   }
 }
 
-@keyframes grain {
+@keyframes cursor-blink {
 
   0%,
-  100% {
-    transform: translate(0, 0)
-  }
-
-  10% {
-    transform: translate(-5%, -10%)
-  }
-
-  30% {
-    transform: translate(7%, -25%)
-  }
-
   50% {
-    transform: translate(-15%, 10%)
+    opacity: 1;
   }
 
-  70% {
-    transform: translate(0%, 15%)
-  }
-
-  90% {
-    transform: translate(-10%, 10%)
+  51%,
+  100% {
+    opacity: 0;
   }
 }
 
@@ -338,28 +336,8 @@ pre,
   animation: pulse-glow 2s ease-in-out infinite;
 }
 
-.animate-grain {
-  animation: grain 8s steps(10) infinite;
-}
-
-/* ========================================
-   TYPOGRAPHY FIXES - Better Contrast
-   ======================================== */
-
-/* Body text - improved readability */
-.text-readable {
-  color: rgba(255, 255, 255, 0.9);
-}
-
-/* Ensure text in glass cards is readable */
-.glass-card p,
-.glass-card span {
-  color: #e0e0e0;
-}
-
-/* Muted text should still be visible */
-.text-muted {
-  color: #a0a0a0;
+.animate-cursor-blink {
+  animation: cursor-blink 1s step-end infinite;
 }
 
 /* ========================================
@@ -367,12 +345,22 @@ pre,
    ======================================== */
 
 @media (max-width: 640px) {
+  html {
+    font-size: 14px;
+  }
+
   .glass-card {
     border-radius: 6px;
   }
 
   h1 {
     letter-spacing: 0.02em;
+  }
+}
+
+@media (max-width: 480px) {
+  html {
+    font-size: 13px;
   }
 }
 
@@ -388,6 +376,7 @@ pre,
     animation-duration: 0.01ms !important;
     animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
   }
 
   .glitch-text::before,
@@ -397,13 +386,9 @@ pre,
 }
 
 /* Focus styles for accessibility */
-button:focus-visible {
-  outline: 2px solid var(--color-system-cyan);
-  outline-offset: 2px;
-}
-
+button:focus-visible,
 a:focus-visible {
-  outline: 2px solid var(--color-gold);
+  outline: 2px solid #00f0ff;
   outline-offset: 2px;
 }
 
@@ -417,15 +402,15 @@ a:focus-visible {
 }
 
 .shadow-glow-cyan {
-  box-shadow: var(--shadow-glow-cyan);
+  box-shadow: 0 0 20px rgba(0, 240, 255, 0.3), 0 0 40px rgba(0, 240, 255, 0.15);
 }
 
 .shadow-glow-gold {
-  box-shadow: var(--shadow-glow-gold);
+  box-shadow: 0 0 20px rgba(255, 215, 0, 0.3), 0 0 40px rgba(255, 215, 0, 0.15);
 }
 
 .shadow-glow-red {
-  box-shadow: var(--shadow-glow-red);
+  box-shadow: 0 0 20px rgba(255, 0, 60, 0.3), 0 0 40px rgba(255, 0, 60, 0.15);
 }
 
 /* Hide scrollbar utility */
@@ -436,4 +421,17 @@ a:focus-visible {
 
 .hide-scrollbar::-webkit-scrollbar {
   display: none;
+}
+
+/* ========================================
+   FONT FACE FALLBACKS
+   ======================================== */
+
+/* Make sure fonts load properly */
+.font-serif {
+  font-family: 'Playfair Display', Georgia, 'Times New Roman', serif;
+}
+
+.font-sans {
+  font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
 }
