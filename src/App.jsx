@@ -1,13 +1,12 @@
 import { Canvas } from '@react-three/fiber'
 import { ScrollControls, Preload } from '@react-three/drei'
-import { useState, Suspense, useEffect, useRef } from 'react'
+import { useState, Suspense, useEffect } from 'react'
 import { AnimatePresence, motion } from 'framer-motion'
 import Scene from './components/Scene'
 import Overlay from './components/Overlay'
 import LandingScreen from './components/LandingScreen'
 import AudioPlayer from './components/AudioPlayer'
 import CustomCursor from './components/CustomCursor'
-import CinematicOverlay from './components/CinematicOverlay'
 import { story } from './data/story'
 
 // Loading screen component
@@ -83,37 +82,9 @@ function LoadingScreen({ onLoadComplete }) {
   )
 }
 
-// Skip hint component
-function SkipHint({ visible }) {
-  if (!visible) return null
-
-  return (
-    <motion.div
-      initial={{ opacity: 0, y: -10 }}
-      animate={{ opacity: 1, y: 0 }}
-      exit={{ opacity: 0, y: -10 }}
-      className="fixed top-20 left-1/2 -translate-x-1/2 z-[100] text-center pointer-events-none"
-    >
-      <div className="bg-black/90 border border-[#333] px-4 py-2 rounded font-mono text-[10px] text-[#808080] shadow-lg">
-        Press <span className="text-[#00f0ff] font-bold">[S]</span> to skip to the emotional part
-      </div>
-    </motion.div>
-  )
-}
-
 export default function App() {
   const [started, setStarted] = useState(false)
   const [isLoaded, setIsLoaded] = useState(false)
-  const [showSkipHint, setShowSkipHint] = useState(false)
-
-  // Show skip hint briefly when experience starts
-  useEffect(() => {
-    if (started) {
-      setShowSkipHint(true)
-      const timer = setTimeout(() => setShowSkipHint(false), 4000)
-      return () => clearTimeout(timer)
-    }
-  }, [started])
 
   return (
     <>
@@ -134,15 +105,13 @@ export default function App() {
         )}
       </AnimatePresence>
 
-      {/* Skip Hint */}
-      <AnimatePresence>
-        {showSkipHint && <SkipHint visible={showSkipHint} />}
-      </AnimatePresence>
+      {/* ============================================
+          KRITIS: Struktur baru untuk scroll yang benar
+          Canvas fixed di background, scroll bebas
+          ============================================ */}
 
-      {/* Main Experience */}
-      <main className="w-full h-screen bg-black relative overflow-hidden">
-        <AudioPlayer started={started} />
-
+      {/* 1. Background Canvas Container (Fixed) */}
+      <div className="fixed inset-0 z-0">
         <Canvas
           camera={{ position: [0, 0, 5], fov: 60 }}
           dpr={[1, 2]}
@@ -165,10 +134,43 @@ export default function App() {
             <Preload all />
           </Suspense>
         </Canvas>
+      </div>
 
-        {/* Cinematic Overlays (separated component) */}
-        <CinematicOverlay />
-      </main>
+      {/* 2. UI Elements yang TIDAK ikut scroll (Fixed on top) */}
+      <div className="fixed inset-0 z-10 pointer-events-none">
+        {/* Audio Player butuh pointer-events-auto agar bisa diklik */}
+        <div className="pointer-events-auto">
+          <AudioPlayer started={started} />
+        </div>
+      </div>
+
+      {/* 3. Cinematic Overlays */}
+      <div className="fixed inset-0 z-5 pointer-events-none">
+        {/* Vignette */}
+        <div
+          className="absolute inset-0"
+          style={{
+            background: 'radial-gradient(circle at center, transparent 35%, rgba(0,0,0,0.7) 100%)'
+          }}
+        />
+
+        {/* Film Grain - subtle */}
+        <div
+          className="absolute inset-0 opacity-[0.03]"
+          style={{
+            backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E")`
+          }}
+        />
+
+        {/* CRT Scanlines */}
+        <div
+          className="absolute inset-0 opacity-10"
+          style={{
+            backgroundImage: `linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.2) 50%)`,
+            backgroundSize: '100% 3px'
+          }}
+        />
+      </div>
     </>
   )
 }

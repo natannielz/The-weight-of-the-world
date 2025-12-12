@@ -606,7 +606,7 @@ function Effects() {
 export default function Scene() {
   const scroll = useScroll()
   const bgRef = useRef()
-  const { camera, viewport, mouse } = useThree()
+  const { camera } = useThree()
 
   const isMobile = useMemo(() => getIsMobile(), [])
 
@@ -615,21 +615,51 @@ export default function Scene() {
 
   useFrame((state) => {
     const offset = scroll.offset
+    const t = state.clock.getElapsedTime()
 
     // ========================================
-    // MOUSE PARALLAX - Camera follows mouse
+    // DYNAMIC CAMERA - Zoom & Shake based on emotion
     // ========================================
+    let targetZ = 5
+    let targetY = 0
+    let targetX = 0
+
+    // Scene 1-2: Default
+    if (offset < 0.40) {
+      targetZ = 5
+    }
+    // Scene 3-4: Glitch/Choir -> Zoom In (pressure/intensity)
+    else if (offset >= 0.40 && offset < 0.70) {
+      targetZ = 3.5
+      // Camera shake effect during intense section
+      const shakeIntensity = THREE.MathUtils.smoothstep(offset, 0.45, 0.55)
+      targetY = Math.sin(t * 25) * 0.03 * shakeIntensity
+      targetX = Math.cos(t * 30) * 0.02 * shakeIntensity
+    }
+    // Scene 5-6: Rain -> Slightly closer
+    else if (offset >= 0.70 && offset < 0.90) {
+      targetZ = 4.5
+    }
+    // Scene 7-8: Reboot -> Zoom Out (release/transcendence)
+    else if (offset >= 0.90) {
+      targetZ = 6 + (offset - 0.90) * 5
+    }
+
+    // Smooth lerp camera for cinematic feel
+    camera.position.z = THREE.MathUtils.lerp(camera.position.z, targetZ, 0.02)
+    camera.position.y = THREE.MathUtils.lerp(camera.position.y, targetY, 0.05)
+    camera.position.x = THREE.MathUtils.lerp(camera.position.x, targetX, 0.05)
+
+    // Mouse parallax (desktop only) - subtle
     if (!isMobile) {
-      const targetX = originalCameraPos.current.x + (state.mouse.x * 0.8)
-      const targetY = originalCameraPos.current.y + (state.mouse.y * 0.5)
+      const mouseX = state.mouse.x * 0.5
+      const mouseY = state.mouse.y * 0.3
+      camera.position.x = THREE.MathUtils.lerp(camera.position.x, targetX + mouseX, 0.02)
+      camera.position.y = THREE.MathUtils.lerp(camera.position.y, targetY + mouseY, 0.02)
 
-      // Smooth lerp for mechanical feel
-      state.camera.position.x = THREE.MathUtils.lerp(state.camera.position.x, targetX, 0.03)
-      state.camera.position.y = THREE.MathUtils.lerp(state.camera.position.y, targetY, 0.03)
-
-      // Subtle rotation to follow mouse
-      state.camera.rotation.y = THREE.MathUtils.lerp(state.camera.rotation.y, -state.mouse.x * 0.02, 0.03)
-      state.camera.rotation.x = THREE.MathUtils.lerp(state.camera.rotation.x, state.mouse.y * 0.02, 0.03)
+      // Subtle rotation
+      camera.rotation.y = THREE.MathUtils.lerp(camera.rotation.y, -state.mouse.x * 0.015, 0.02)
+      camera.rotation.x = THREE.MathUtils.lerp(camera.rotation.x, state.mouse.y * 0.015, 0.02)
     }
 
     // ========================================

@@ -20,30 +20,6 @@ const useSFX = () => {
     }
   }, [])
 
-  const playBeep = useCallback((frequency = 800, duration = 0.05, volume = 0.1) => {
-    if (!audioContext.current) initAudio()
-    if (!audioContext.current) return
-
-    try {
-      const oscillator = audioContext.current.createOscillator()
-      const gainNode = audioContext.current.createGain()
-
-      oscillator.connect(gainNode)
-      gainNode.connect(audioContext.current.destination)
-
-      oscillator.frequency.value = frequency
-      oscillator.type = 'sine'
-
-      gainNode.gain.value = volume
-      gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.current.currentTime + duration)
-
-      oscillator.start(audioContext.current.currentTime)
-      oscillator.stop(audioContext.current.currentTime + duration)
-    } catch (e) {
-      // Silent fail
-    }
-  }, [initAudio])
-
   const playGlitch = useCallback(() => {
     if (!audioContext.current) initAudio()
     if (!audioContext.current) return
@@ -73,17 +49,23 @@ const useSFX = () => {
     }
   }, [initAudio])
 
-  return { playBeep, playGlitch, initAudio }
+  return { playGlitch, initAudio }
 }
 
 // ========================================
 // TYPEWRITER TEXT COMPONENT
 // ========================================
-function TypewriterText({ text, speed = 10, className = '', onComplete }) {
+function TypewriterText({ text, active, speed = 8 }) {
   const [displayedText, setDisplayedText] = useState('')
   const [isComplete, setIsComplete] = useState(false)
 
   useEffect(() => {
+    if (!active) {
+      setDisplayedText(text) // Show full text if not active
+      setIsComplete(true)
+      return
+    }
+
     setDisplayedText('')
     setIsComplete(false)
 
@@ -95,21 +77,20 @@ function TypewriterText({ text, speed = 10, className = '', onComplete }) {
       } else {
         clearInterval(interval)
         setIsComplete(true)
-        onComplete?.()
       }
     }, speed)
 
     return () => clearInterval(interval)
-  }, [text, speed, onComplete])
+  }, [text, active, speed])
 
   return (
-    <span className={className}>
+    <span className="text-[#e0e0e0]">
       {displayedText}
-      {!isComplete && (
+      {active && !isComplete && (
         <motion.span
           animate={{ opacity: [1, 0] }}
           transition={{ duration: 0.5, repeat: Infinity }}
-          className="text-[#00f0ff]"
+          className="text-[#00f0ff] ml-0.5"
         >
           ▌
         </motion.span>
@@ -196,7 +177,6 @@ function GlitchTitle({ children, active = false, className = '', dataText = '' }
   useEffect(() => {
     if (!active) return
 
-    // Random glitch every 3-8 seconds
     const interval = setInterval(() => {
       setIsGlitching(true)
       setTimeout(() => setIsGlitching(false), 200 + Math.random() * 300)
@@ -219,14 +199,14 @@ function GlitchTitle({ children, active = false, className = '', dataText = '' }
 // NIER UI CARD WITH DECORATIVE BORDERS
 // ========================================
 function NierCard({ children, className = '', scene = '' }) {
-  const baseClasses = 'backdrop-blur-xl rounded-lg p-5 md:p-8 shadow-2xl relative'
+  const baseClasses = 'backdrop-blur-md rounded-lg p-6 md:p-10 shadow-2xl relative'
 
   const sceneClasses = {
-    reboot: 'bg-black/90 border border-[#ffd700]/40 shadow-[0_0_40px_rgba(255,215,0,0.1)]',
-    rain: 'bg-[#0a1628]/90 border border-[#00f0ff]/30 shadow-[0_0_40px_rgba(0,240,255,0.1)]',
-    glitch: 'bg-black/90 border border-[#ff003c]/30 shadow-[0_0_40px_rgba(255,0,60,0.1)]',
-    screaming: 'bg-black/90 border border-[#ff003c]/30 shadow-[0_0_40px_rgba(255,0,60,0.1)]',
-    default: 'bg-black/80 border border-white/10'
+    reboot: 'bg-black/70 border border-[#ffd700]/40 shadow-[0_0_40px_rgba(255,215,0,0.1)]',
+    rain: 'bg-[#0a1628]/80 border border-[#00f0ff]/30 shadow-[0_0_40px_rgba(0,240,255,0.1)]',
+    glitch: 'bg-black/80 border border-[#ff003c]/30 shadow-[0_0_40px_rgba(255,0,60,0.1)]',
+    screaming: 'bg-black/80 border border-[#ff003c]/30 shadow-[0_0_40px_rgba(255,0,60,0.1)]',
+    default: 'bg-black/70 border border-white/10'
   }
 
   const borderColor = scene === 'reboot' ? '#ffd700'
@@ -236,36 +216,11 @@ function NierCard({ children, className = '', scene = '' }) {
 
   return (
     <div className={`${baseClasses} ${sceneClasses[scene] || sceneClasses.default} ${className}`}>
-      {/* Decorative Corner - Top Left */}
-      <div
-        className="absolute -top-1 -left-1 w-3 h-3 border-t-2 border-l-2 pointer-events-none"
-        style={{ borderColor }}
-      />
-      {/* Decorative Corner - Top Right */}
-      <div
-        className="absolute -top-1 -right-1 w-3 h-3 border-t-2 border-r-2 pointer-events-none"
-        style={{ borderColor }}
-      />
-      {/* Decorative Corner - Bottom Left */}
-      <div
-        className="absolute -bottom-1 -left-1 w-3 h-3 border-b-2 border-l-2 pointer-events-none"
-        style={{ borderColor }}
-      />
-      {/* Decorative Corner - Bottom Right */}
-      <div
-        className="absolute -bottom-1 -right-1 w-3 h-3 border-b-2 border-r-2 pointer-events-none"
-        style={{ borderColor }}
-      />
-
-      {/* Horizontal Lines */}
-      <div
-        className="absolute top-1/2 -left-4 w-3 h-px pointer-events-none"
-        style={{ backgroundColor: borderColor, opacity: 0.5 }}
-      />
-      <div
-        className="absolute top-1/2 -right-4 w-3 h-px pointer-events-none"
-        style={{ backgroundColor: borderColor, opacity: 0.5 }}
-      />
+      {/* Decorative Corners */}
+      <div className="absolute -top-1 -left-1 w-4 h-4 border-t-2 border-l-2 pointer-events-none" style={{ borderColor }} />
+      <div className="absolute -top-1 -right-1 w-4 h-4 border-t-2 border-r-2 pointer-events-none" style={{ borderColor }} />
+      <div className="absolute -bottom-1 -left-1 w-4 h-4 border-b-2 border-l-2 pointer-events-none" style={{ borderColor }} />
+      <div className="absolute -bottom-1 -right-1 w-4 h-4 border-b-2 border-r-2 pointer-events-none" style={{ borderColor }} />
 
       {children}
     </div>
@@ -281,27 +236,21 @@ export default function Overlay() {
   const itemRefs = useRef([])
   const [activeIndex, setActiveIndex] = useState(0)
   const [scrollPercent, setScrollPercent] = useState(0)
-  const [useTypewriter, setUseTypewriter] = useState(true)
   const previousScene = useRef('')
 
-  const { playBeep, playGlitch, initAudio } = useSFX()
+  const { playGlitch, initAudio } = useSFX()
 
   // Initialize audio on first interaction
   useEffect(() => {
     const handleInteraction = () => {
       initAudio()
       window.removeEventListener('click', handleInteraction)
-      window.removeEventListener('keydown', handleInteraction)
     }
     window.addEventListener('click', handleInteraction)
-    window.addEventListener('keydown', handleInteraction)
-    return () => {
-      window.removeEventListener('click', handleInteraction)
-      window.removeEventListener('keydown', handleInteraction)
-    }
+    return () => window.removeEventListener('click', handleInteraction)
   }, [initAudio])
 
-  // Force first item to be visible on mount
+  // Force first item visible on mount
   useEffect(() => {
     if (itemRefs.current[0]) {
       itemRefs.current[0].style.opacity = '1'
@@ -321,13 +270,13 @@ export default function Overlay() {
   useFrame(() => {
     const scrollOffset = scroll.offset || 0
 
-    // Update scroll percentage state (throttled)
+    // Update scroll percentage
     const newPercent = Math.round(scrollOffset * 100)
     if (newPercent !== scrollPercent) {
       setScrollPercent(newPercent)
     }
 
-    // Update progress bar directly via ref (no re-render)
+    // Update progress bar directly
     if (progressRef.current) {
       progressRef.current.style.width = `${scrollOffset * 100}%`
     }
@@ -343,13 +292,9 @@ export default function Overlay() {
 
     if (currentActiveIndex !== activeIndex && currentActiveIndex !== -1) {
       setActiveIndex(currentActiveIndex)
-      // Disable typewriter after first scroll to improve UX
-      if (scrollPercent > 10) {
-        setUseTypewriter(false)
-      }
     }
 
-    // Animate each item based on scroll
+    // Animate each item
     itemRefs.current.forEach((child, i) => {
       if (!child) return
 
@@ -362,8 +307,7 @@ export default function Overlay() {
 
       let opacity = 0
 
-      // Calculate visibility with smoother transitions
-      const fadeRange = 0.04
+      const fadeRange = 0.05
       const fadeInStart = itemStart - fadeRange
       const fadeInEnd = itemStart + fadeRange
       const fadeOutStart = itemEnd - fadeRange
@@ -379,14 +323,14 @@ export default function Overlay() {
         }
       }
 
-      // Special handling for first item
-      if (i === 0 && scrollOffset < 0.08) {
-        opacity = Math.max(opacity, 1 - (scrollOffset / 0.08))
+      // First item special handling
+      if (i === 0 && scrollOffset < 0.10) {
+        opacity = Math.max(opacity, 1 - (scrollOffset / 0.10))
       }
 
-      // Special handling for last item
-      if (i === story.length - 1 && scrollOffset > 0.90) {
-        opacity = Math.max(opacity, (scrollOffset - 0.90) / 0.05)
+      // Last item special handling
+      if (i === story.length - 1 && scrollOffset > 0.88) {
+        opacity = Math.max(opacity, (scrollOffset - 0.88) / 0.08)
       }
 
       opacity = Math.max(0, Math.min(1, opacity))
@@ -395,17 +339,18 @@ export default function Overlay() {
       child.style.visibility = opacity > 0.01 ? 'visible' : 'hidden'
 
       // Parallax effect
-      const parallax = (scrollOffset - itemCenter) * 150
+      const parallax = (scrollOffset - itemCenter) * 120
       child.style.transform = `translateY(${-parallax}px)`
     })
   })
 
   const showTerminal = activeIndex === story.length - 1
+  const isIntro = scrollPercent < 3 // Scroll hint disappears at 3%
 
   return (
     <Html fullscreen className="pointer-events-none select-none" zIndexRange={[100, 0]}>
       {/* === TOP HEADER === */}
-      <header className="fixed top-0 left-0 w-full p-4 md:p-6 flex justify-between items-center z-50 bg-gradient-to-b from-black/50 to-transparent">
+      <header className={`fixed top-0 left-0 w-full p-4 md:p-6 flex justify-between items-center z-50 bg-gradient-to-b from-black/60 to-transparent transition-opacity duration-500 ${scrollPercent > 95 ? 'opacity-0' : 'opacity-100'}`}>
         <div className="flex items-center gap-3">
           <div className="w-2 h-2 bg-[#00f0ff] rounded-full animate-pulse shadow-[0_0_8px_#00f0ff]" />
           <span className="text-white/50 font-mono text-[10px] md:text-xs tracking-[0.15em]">
@@ -435,7 +380,7 @@ export default function Overlay() {
         </div>
       </header>
 
-      {/* === SYSTEM INTEGRITY UPLOAD BAR === */}
+      {/* === PROGRESS BAR (BOTTOM) === */}
       <div className="fixed bottom-6 left-1/2 -translate-x-1/2 w-[85%] max-w-2xl z-50">
         <div className="text-[10px] text-[#808080] font-mono tracking-[0.15em] mb-2 flex justify-between">
           <span>{'>'} SYSTEM_INTEGRITY_UPLOAD...</span>
@@ -448,12 +393,27 @@ export default function Overlay() {
             style={{ width: '0%', transition: 'width 0.1s linear' }}
           />
         </div>
-        {/* Tick marks */}
-        <div className="absolute inset-x-0 top-[26px] flex justify-between px-0.5 pointer-events-none">
-          {[...Array(10)].map((_, i) => (
-            <div key={i} className="w-px h-2 bg-[#333]" />
-          ))}
-        </div>
+      </div>
+
+      {/* === SCROLL HINT (HIDES ON SCROLL) === */}
+      <div className={`fixed bottom-28 left-1/2 -translate-x-1/2 z-30 transition-all duration-700 ${isIntro ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-10 pointer-events-none'}`}>
+        <motion.div
+          animate={{ y: [0, 8, 0] }}
+          transition={{ repeat: Infinity, duration: 1.5, ease: 'easeInOut' }}
+          className="flex flex-col items-center gap-2"
+        >
+          <span className="text-[#808080] font-mono text-[10px] md:text-xs tracking-widest">
+            SCROLL TO BEGIN
+          </span>
+          <svg
+            className="w-4 h-4 text-[#ffd700]"
+            fill="none"
+            viewBox="0 0 24 24"
+            stroke="currentColor"
+          >
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 14l-7 7m0 0l-7-7m7 7V3" />
+          </svg>
+        </motion.div>
       </div>
 
       {/* === MAIN CONTENT === */}
@@ -462,20 +422,19 @@ export default function Overlay() {
           <div
             key={i}
             ref={(el) => (itemRefs.current[i] = el)}
-            className="absolute inset-0 flex items-center justify-center p-4 md:p-8 lg:p-12"
+            className="absolute inset-0 flex items-center justify-center px-6 md:px-20"
             style={{
               willChange: 'opacity, transform',
               opacity: i === 0 ? 1 : 0,
               visibility: i === 0 ? 'visible' : 'hidden'
             }}
           >
-            <div className="max-w-3xl w-full text-center">
+            <div className="max-w-3xl w-full text-center relative z-10">
               {/* System Note */}
               {item.systemNote && (
                 <motion.p
-                  initial={{ opacity: 0, y: -10 }}
+                  initial={{ opacity: 0 }}
                   animate={{ opacity: 0.7 }}
-                  transition={{ delay: 0.2 }}
                   className="text-[#00f0ff] text-[10px] md:text-xs font-mono tracking-[0.2em] mb-4"
                 >
                   <span className="animate-pulse">[</span>
@@ -491,7 +450,7 @@ export default function Overlay() {
                 </p>
               )}
 
-              {/* Title with Glitch Effect */}
+              {/* Title */}
               <GlitchTitle
                 className={`text-2xl sm:text-3xl md:text-5xl lg:text-6xl font-serif text-white mb-6 md:mb-8 tracking-wide leading-tight ${item.scene === 'reboot' ? 'text-shadow-gold' : ''
                   }`}
@@ -501,18 +460,14 @@ export default function Overlay() {
                 {item.title}
               </GlitchTitle>
 
-              {/* Content Card with Nier UI Borders */}
+              {/* Content Card */}
               <NierCard scene={item.scene}>
-                <p className="text-[#e0e0e0] text-sm md:text-base font-mono leading-relaxed md:leading-loose whitespace-pre-line text-left">
-                  {activeIndex === i && useTypewriter && i === 0 ? (
-                    <TypewriterText
-                      text={item.text}
-                      speed={8}
-                      className="text-[#e0e0e0]"
-                    />
-                  ) : (
-                    item.text
-                  )}
+                <p className="text-sm md:text-base font-mono leading-relaxed md:leading-loose whitespace-pre-line text-left">
+                  <TypewriterText
+                    text={item.text}
+                    active={i === activeIndex && i === 0}
+                    speed={5}
+                  />
                 </p>
               </NierCard>
 
@@ -537,7 +492,7 @@ export default function Overlay() {
         ))}
       </div>
 
-      {/* === SIDE INDICATORS === */}
+      {/* === SIDE INDICATORS (Desktop) === */}
       <div className="fixed right-3 md:right-6 top-1/2 -translate-y-1/2 z-40 hidden md:flex flex-col gap-1.5">
         {story.map((item, i) => (
           <div
@@ -553,42 +508,11 @@ export default function Overlay() {
         ))}
       </div>
 
-      {/* === DECORATIVE CORNERS (smaller to avoid collision) === */}
-      <div className="fixed top-0 left-0 w-8 h-8 md:w-12 md:h-12 border-l border-t border-[#333]/50 pointer-events-none" />
-      <div className="fixed top-0 right-0 w-8 h-8 md:w-12 md:h-12 border-r border-t border-[#333]/50 pointer-events-none" />
-      <div className="fixed bottom-0 left-0 w-8 h-8 md:w-12 md:h-12 border-l border-b border-[#333]/50 pointer-events-none" />
-      <div className="fixed bottom-0 right-0 w-8 h-8 md:w-12 md:h-12 border-r border-b border-[#333]/50 pointer-events-none" />
-
-      {/* === SCROLL HINT (disappears quickly) === */}
-      <AnimatePresence>
-        {activeIndex === 0 && scrollPercent < 1 && (
-          <motion.div
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 0.7, y: 0 }}
-            exit={{ opacity: 0, y: 10 }}
-            transition={{ duration: 0.3 }}
-            className="fixed bottom-32 left-1/2 -translate-x-1/2 z-30 text-center pointer-events-none"
-          >
-            <motion.div
-              animate={{ y: [0, 6, 0] }}
-              transition={{ repeat: Infinity, duration: 1.5, ease: 'easeInOut' }}
-              className="flex flex-col items-center gap-1"
-            >
-              <span className="text-[#808080]/70 font-mono text-[9px] md:text-[10px] tracking-widest">
-                SCROLL
-              </span>
-              <svg
-                className="w-3 h-3 text-[#808080]/70"
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke="currentColor"
-              >
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 14l-7 7m0 0l-7-7m7 7V3" />
-              </svg>
-            </motion.div>
-          </motion.div>
-        )}
-      </AnimatePresence>
+      {/* === DECORATIVE CORNERS (Smaller) === */}
+      <div className="fixed top-0 left-0 w-6 h-6 md:w-10 md:h-10 border-l border-t border-[#333]/50 pointer-events-none" />
+      <div className="fixed top-0 right-0 w-6 h-6 md:w-10 md:h-10 border-r border-t border-[#333]/50 pointer-events-none" />
+      <div className="fixed bottom-0 left-0 w-6 h-6 md:w-10 md:h-10 border-l border-b border-[#333]/50 pointer-events-none" />
+      <div className="fixed bottom-0 right-0 w-6 h-6 md:w-10 md:h-10 border-r border-b border-[#333]/50 pointer-events-none" />
 
       {/* === SCENE INDICATOR (Mobile) === */}
       <div className="fixed bottom-16 left-4 z-40 md:hidden">
