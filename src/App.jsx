@@ -1,6 +1,6 @@
 import { Canvas } from '@react-three/fiber'
 import { ScrollControls, Preload } from '@react-three/drei'
-import { useState, Suspense, useEffect, useCallback } from 'react'
+import { useState, Suspense, useEffect } from 'react'
 import { AnimatePresence, motion } from 'framer-motion'
 import Scene from './components/Scene'
 import Overlay from './components/Overlay'
@@ -105,7 +105,7 @@ export default function App() {
   const [started, setStarted] = useState(false)
   const [isLoaded, setIsLoaded] = useState(false)
   const [showSkipHint, setShowSkipHint] = useState(false)
-  const scrollContainerRef = useState(null)
+  // Skip key handled via document scroll manipulation
 
   // Keyboard shortcuts
   useEffect(() => {
